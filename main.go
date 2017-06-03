@@ -109,7 +109,7 @@ func exportUsers() {
 	}
 
 	writeJSONFile("User.json", allUsers)
-	writeJSONFile("User.Settings.json", allSettings)
+	writeJSONFile("Settings.json", allSettings)
 }
 
 func exportThreads() {
@@ -127,7 +127,7 @@ func exportThreads() {
 		list = append(list, obj)
 	}
 
-	writeJSONFile("Threads.json", list)
+	writeJSONFile("Thread.json", list)
 }
 
 func writeJSONFile(name string, data interface{}) {
