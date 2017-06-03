@@ -130,6 +130,104 @@ func exportThreads() {
 	writeJSONFile("Thread.json", list)
 }
 
+func exportPosts() {
+	defer wg.Done()
+
+	stream := make(chan *arn.Post)
+	err := arn.Scan("Posts", stream)
+
+	if err != nil {
+		panic(err)
+	}
+
+	list := make([]*arn.Post, 0)
+	for obj := range stream {
+		list = append(list, obj)
+	}
+
+	writeJSONFile("Post.json", list)
+}
+
+func exportMatchesHummingBird() {
+	defer wg.Done()
+
+	stream := make(chan *Match)
+	err := arn.Scan("MatchHummingBird", stream)
+
+	if err != nil {
+		panic(err)
+	}
+
+	list := make([]*Match, 0)
+	for obj := range stream {
+		if obj.EditedBy != "" {
+			list = append(list, obj)
+		}
+	}
+
+	writeJSONFile("MatchHummingBird.json", list)
+}
+
+func exportMatchesMyAnimeList() {
+	defer wg.Done()
+
+	stream := make(chan *Match)
+	err := arn.Scan("MatchMyAnimeList", stream)
+
+	if err != nil {
+		panic(err)
+	}
+
+	list := make([]*Match, 0)
+	for obj := range stream {
+		if obj.EditedBy != "" {
+			list = append(list, obj)
+		}
+	}
+
+	writeJSONFile("MatchMyAnimeList.json", list)
+}
+
+func exportMatchesAnimePlanet() {
+	defer wg.Done()
+
+	stream := make(chan *Match2)
+	err := arn.Scan("MatchAnimePlanet", stream)
+
+	if err != nil {
+		panic(err)
+	}
+
+	list := make([]*Match2, 0)
+	for obj := range stream {
+		if obj.EditedBy != "" {
+			list = append(list, obj)
+		}
+	}
+
+	writeJSONFile("MatchAnimePlanet.json", list)
+}
+
+func exportMatchesNyaa() {
+	defer wg.Done()
+
+	stream := make(chan *MatchNyaa)
+	err := arn.Scan("AnimeToNyaa", stream)
+
+	if err != nil {
+		panic(err)
+	}
+
+	list := make([]*MatchNyaa, 0)
+	for obj := range stream {
+		if obj.EditedBy != "" {
+			list = append(list, obj)
+		}
+	}
+
+	writeJSONFile("MatchNyaa.json", list)
+}
+
 func writeJSONFile(name string, data interface{}) {
 	json, err := json.MarshalIndent(data, "", "    ")
 
@@ -141,10 +239,15 @@ func writeJSONFile(name string, data interface{}) {
 }
 
 func main() {
-	wg.Add(2)
+	wg.Add(7)
 
 	go exportUsers()
 	go exportThreads()
+	go exportPosts()
+	go exportMatchesHummingBird()
+	go exportMatchesMyAnimeList()
+	go exportMatchesAnimePlanet()
+	go exportMatchesNyaa()
 
 	wg.Wait()
 	fmt.Println("Finished.")
