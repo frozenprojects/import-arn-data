@@ -7,12 +7,15 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/animenotifier/arn"
 	"github.com/fatih/color"
 	"github.com/jinzhu/copier"
 	"github.com/mssola/user_agent"
 )
+
+var wg sync.WaitGroup
 
 func convertUser(o *OldUser) *arn.User {
 	user := new(arn.User)
@@ -61,28 +64,31 @@ func convertUser(o *OldUser) *arn.User {
 	user.UserAgent = o.Agent.Source
 	user.Browser.Name = name
 	user.Browser.Version = version
-
 	copier.Copy(&user.OS, ua.OSInfo())
 
 	return user
 }
 
 func exportUsers() {
-	users := make(chan *OldUser)
-	err := arn.Scan("Users", users)
+	defer wg.Done()
+
+	userStream := make(chan *OldUser)
+	err := arn.Scan("Users", userStream)
 
 	if err != nil {
 		panic(err)
 	}
 
-	newUsers := make([]*arn.User, 0)
+	allUsers := make([]*arn.User, 0)
+	allSettings := make([]*arn.Settings, 0)
 
 	count := 0
-	for old := range users {
+	for old := range userStream {
 		count++
 
+		// User
 		user := convertUser(old)
-		newUsers = append(newUsers, user)
+		allUsers = append(allUsers, user)
 
 		_, err := json.MarshalIndent(user, "", "    ")
 
@@ -90,17 +96,56 @@ func exportUsers() {
 			fmt.Printf("%+v\n", user)
 			color.Red(err.Error())
 		}
+
+		// fmt.Println(string(data))
+
+		// Settings
+		settings := new(arn.Settings)
+		settings.UserID = user.ID
+		settings.TitleLanguage = old.TitleLanguage
+		settings.SortBy = old.SortBy
+		copier.Copy(&settings.Providers, &old.Providers)
+		allSettings = append(allSettings, settings)
 	}
 
-	fullData, err := json.MarshalIndent(newUsers, "", "    ")
+	writeJSONFile("User.json", allUsers)
+	writeJSONFile("User.Settings.json", allSettings)
+}
+
+func exportThreads() {
+	defer wg.Done()
+
+	stream := make(chan *arn.Thread)
+	err := arn.Scan("Threads", stream)
 
 	if err != nil {
 		panic(err)
 	}
 
-	ioutil.WriteFile("Users.json", fullData, 0644)
+	list := make([]*arn.Thread, 0)
+	for obj := range stream {
+		list = append(list, obj)
+	}
+
+	writeJSONFile("Threads.json", list)
+}
+
+func writeJSONFile(name string, data interface{}) {
+	json, err := json.MarshalIndent(data, "", "    ")
+
+	if err != nil {
+		panic(err)
+	}
+
+	ioutil.WriteFile(name, json, 0644)
 }
 
 func main() {
-	exportUsers()
+	wg.Add(2)
+
+	go exportUsers()
+	go exportThreads()
+
+	wg.Wait()
+	fmt.Println("Finished.")
 }
