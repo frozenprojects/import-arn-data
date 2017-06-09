@@ -148,6 +148,24 @@ func exportPosts() {
 	writeJSONFile("Post.json", list)
 }
 
+func exportMessages() {
+	defer wg.Done()
+
+	stream := make(chan *Message)
+	err := arn.Scan("Messages", stream)
+
+	if err != nil {
+		panic(err)
+	}
+
+	list := make([]*Message, 0)
+	for obj := range stream {
+		list = append(list, obj)
+	}
+
+	writeJSONFile("Message.json", list)
+}
+
 func exportMatchesHummingBird() {
 	defer wg.Done()
 
@@ -239,11 +257,12 @@ func writeJSONFile(name string, data interface{}) {
 }
 
 func main() {
-	wg.Add(7)
+	wg.Add(8)
 
 	go exportUsers()
 	go exportThreads()
 	go exportPosts()
+	go exportMessages()
 	go exportMatchesHummingBird()
 	go exportMatchesMyAnimeList()
 	go exportMatchesAnimePlanet()

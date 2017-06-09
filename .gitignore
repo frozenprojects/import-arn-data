@@ -14,4 +14,6 @@
 .glide/
 
 *.json
+
 /import-arn-data
+/import/import
